@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Natural Interactive Tree</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #fff;
+      font-family: sans-serif;
+    }
+    #menu {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 20;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .menu-line {
+      width: 25px;
+      height: 3px;
+      background: #333;
+      margin: 5px 0;
+      transition: 0.4s;
+    }
+    #quicklinks {
+      position: absolute;
+      top: 60px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: none;
+      z-index: 20;
+    }
+    #quicklinks a {
+      display: block;
+      padding: 8px 15px;
+      color: #333;
+      text-decoration: none;
+      transition: 0.3s;
+      border-radius: 3px;
+    }
+    #quicklinks a:hover {
+      background: #f0f0f0;
+    }
+    #contentOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255,255,255,0.98);
+      color: #000;
+      padding: 20px;
+      box-sizing: border-box;
+      display: none;
+      z-index: 10;
+    }
+    #backButton {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      padding: 10px 15px;
+      cursor: pointer;
+      z-index: 20;
+      display: none;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="menu">
+    <div class="menu-line"></div>
+    <div class="menu-line"></div>
+    <div class="menu-line"></div>
+  </div>
+  <div id="quicklinks"></div>
+  <div id="contentOverlay"></div>
+  <div id="backButton">Back</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    let scene, camera, renderer, controls;
+    let isZoomedIn = false;
+    const interactiveApples = [];
+    
+    const contentData = [
+      { title: "Photosynthesis", content: "<h2>Photosynthesis</h2><p>Discover how trees convert sunlight into energy.</p>", color: 0xff0000 },
+      { title: "Root System", content: "<h2>Root System</h2><p>Explore the complex underground network.</p>", color: 0xff4400 },
+      { title: "Seasonal Changes", content: "<h2>Seasonal Changes</h2><p>Learn about tree adaptations.</p>", color: 0xff8800 },
+      { title: "Pollination", content: "<h2>Pollination</h2><p>The role of pollinators.</p>", color: 0xffcc00 },
+      { title: "Growth Rings", content: "<h2>Growth Rings</h2><p>Reading tree history.</p>", color: 0xffff00 },
+      { title: "Ecosystem", content: "<h2>Ecosystem</h2><p>Trees in nature.</p>", color: 0xccff00 },
+      { title: "Water Cycle", content: "<h2>Water Cycle</h2><p>Water movement in trees.</p>", color: 0x88ff00 },
+      { title: "Nutrients", content: "<h2>Nutrients</h2><p>Essential elements for growth.</p>", color: 0x44ff00 },
+      { title: "Carbon Storage", content: "<h2>Carbon Storage</h2><p>Carbon capture process.</p>", color: 0x00ff00 },
+      { title: "Forest Types", content: "<h2>Forest Types</h2><p>Different forest ecosystems.</p>", color: 0x00ff44 }
+    ];
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xffffff);
+
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
+    camera.position.set(0, 100, 300);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 50, 0);
+    controls.minPolarAngle = 0;
+    controls.maxPolarAngle = Math.PI * 0.45;
+
+    const ambientLight = new THREE.AmbientLight(0xaaaaaa);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+
+    const groundGeometry = new THREE.CircleGeometry(1000, 32);
+    const groundMaterial = new THREE.MeshPhongMaterial({ color: 0x228B22 });
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -31;
+    scene.add(ground);
+
+    const treeGroup = new THREE.Group();
+    scene.add(treeGroup);
+
+    // Create more organic-looking trunk
+    const trunkGeometry = new THREE.CylinderGeometry(8, 12, 60, 12);
+    const trunkMaterial = new THREE.MeshPhongMaterial({ 
+      color: 0x8B4513,
+      roughness: 0.8,
+      metalness: 0.2
+    });
+    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+    trunk.position.y = 30;
+    treeGroup.add(trunk);
+
+    // Create leaf shape
+    function createLeafShape() {
+      const shape = new THREE.Shape();
+      shape.moveTo(0, 0);
+      shape.quadraticCurveTo(1, 1, 0, 2);
+      shape.quadraticCurveTo(-1, 1, 0, 0);
+      return shape;
+    }
+
+    function createBranch(startPoint, direction, length, radius, depth, parentAngle = 0) {
+      if (depth <= 0) return;
+
+      const branchAngle = parentAngle + (Math.random() - 0.5) * Math.PI * 0.5;
+      const endPoint = startPoint.clone().add(
+        new THREE.Vector3(
+          Math.sin(branchAngle) * length,
+          direction.y * length,
+          Math.cos(branchAngle) * length
+        )
+      );
+      
+      // Create organic-looking branch
+      const branchCurve = new THREE.CatmullRomCurve3([
+        startPoint,
+        new THREE.Vector3(
+          (startPoint.x + endPoint.x) * 0.5 + (Math.random() - 0.5) * 10,
+          (startPoint.y + endPoint.y) * 0.5 + (Math.random() - 0.5) * 5,
+          (startPoint.z + endPoint.z) * 0.5 + (Math.random() - 0.5) * 10
+        ),
+        endPoint
+      ]);
+
+      const branchGeometry = new THREE.TubeGeometry(branchCurve, 8, radius, 8, false);
+      const branchMaterial = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+      const branch = new THREE.Mesh(branchGeometry, branchMaterial);
+      treeGroup.add(branch);
+
+      // Add leaves
+      if (depth <= 3) {
+        const leafShape = createLeafShape();
+        const leafGeometry = new THREE.ShapeGeometry(leafShape);
+        const leafMaterial = new THREE.MeshPhongMaterial({ 
+          color: 0x228B22,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.9
+        });
+
+        const numLeaves = Math.floor(Math.random() * 5) + 3;
+        for (let i = 0; i < numLeaves; i++) {
+          const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+          leaf.position.copy(endPoint);
+          leaf.position.x += (Math.random() - 0.5) * 10;
+          leaf.position.y += (Math.random() - 0.5) * 10;
+          leaf.position.z += (Math.random() - 0.5) * 10;
+          
+          leaf.rotation.x = Math.random() * Math.PI;
+          leaf.rotation.y = Math.random() * Math.PI;
+          leaf.rotation.z = Math.random() * Math.PI;
+          
+          leaf.scale.set(3, 3, 3);
+          treeGroup.add(leaf);
+        }
+
+        // Add fruits with hanging effect
+        if (depth === 2 && interactiveApples.length < contentData.length && Math.random() < 0.3) {
+          const fruitPos = endPoint.clone();
+          // Add downward bias for hanging effect
+          fruitPos.y -= Math.random() * 8 + 4;
+          fruitPos.x += (Math.random() - 0.5) * 15;
+          fruitPos.z += (Math.random() - 0.5) * 15;
+
+          const fruit = new THREE.Group();
+          
+          // Create fruit body
+          const fruitGeometry = new THREE.SphereGeometry(4, 16, 16);
+          const data = contentData[interactiveApples.length];
+          const fruitMaterial = new THREE.MeshPhongMaterial({ 
+            color: data.color,
+            roughness: 0.5,
+            metalness: 0.1
+          });
+          const fruitBody = new THREE.Mesh(fruitGeometry, fruitMaterial);
+          fruit.add(fruitBody);
+
+          // Add stem
+          const stemGeometry = new THREE.CylinderGeometry(0.5, 0.5, 3, 8);
+          const stemMaterial = new THREE.MeshPhongMaterial({ color: 0x654321 });
+          const stem = new THREE.Mesh(stemGeometry, stemMaterial);
+          stem.position.y = 4;
+          fruit.add(stem);
+
+          fruit.position.copy(fruitPos);
+          fruit.userData = {
+            content: data.content,
+            title: data.title
+          };
+          interactiveApples.push(fruit);
+          treeGroup.add(fruit);
+        }
+      }
+
+      // Create sub-branches
+      const numBranches = Math.floor(Math.random() * 3) + 2;
+      for (let i = 0; i < numBranches; i++) {
+        const newDirection = direction.clone();
+        newDirection.y *= 0.8;
+        createBranch(
+          endPoint,
+          newDirection,
+          length * (0.5 + Math.random() * 0.3),
+          radius * 0.7,
+          depth - 1,
+          branchAngle + (Math.random() - 0.5) * Math.PI * 0.5
+        );
+      }
+    }
+
+    // Generate main branches with more variation
+    const numMainBranches = 5;
+    for (let i = 0; i < numMainBranches; i++) {
+      const angle = (i * Math.PI * 2) / numMainBranches;
+      const direction = new THREE.Vector3(
+        Math.cos(angle) * 0.4,
+        0.8 + Math.random() * 0.2,
+        Math.sin(angle) * 0.4
+      ).normalize();
+      createBranch(
+        new THREE.Vector3(0, 60 + Math.random() * 10, 0),
+        direction,
+        40 + Math.random() * 20,
+        4,
+        4,
+        angle
+      );
+    }
+
+    function buildQuicklinks() {
+      const quicklinksDiv = document.getElementById("quicklinks");
+      quicklinksDiv.innerHTML = '';
+      interactiveApples.forEach(apple => {
+        const link = document.createElement("a");
+        link.href = "#";
+        link.textContent = apple.userData.title;
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          zoomToApple(apple);
+          toggleQuicklinks();
+        });
+        quicklinksDiv.appendChild(link);
+      });
+    }
+
+    function toggleQuicklinks() {
+      const quicklinks = document.getElementById("quicklinks");
+      quicklinks.style.display = quicklinks.style.display === "none" || quicklinks.style.display === "" ? "block" : "none";
+    }
+
+    document.getElementById("menu").addEventListener("click", toggleQuicklinks);
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function onMouseClick(event) {
+      if (isZoomedIn) return;
+
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(interactiveApples, true);
+
+      if (intersects.length > 0) {
+        const fruit = intersects[0].object.parent || intersects[0].object;
+        zoomToApple(fruit);
+      }
+    }
+
+    function zoomToApple(apple) {
+      isZoomedIn = true;
+      controls.enabled = false;
+
+      const startPos = camera.position.clone();
+      const startTarget = controls.target.clone();
+      const endPos = apple.position.clone().add(new THREE.Vector3(0, 0, 30));
+      
+      const duration = 1000;
+      const startTime = Date.now();
+
+      function animate() {
+        const now = Date.now();
+        const progress = Math.min((now - startTime) / duration, 1);
+        
+        const t = progress < 0.5 
+          ? 2 * progress * progress 
+          : -1 + (4 - 2 * progress) * progress;
+
+          camera.position.lerpVectors(startPos, endPos, t);
+        controls.target.lerpVectors(startTarget, apple.position, t);
+        controls.update();
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          showContent(apple.userData.content);
+        }
+      }
+
+      animate();
+    }
+
+    function showContent(content) {
+      const overlay = document.getElementById('contentOverlay');
+      overlay.innerHTML = content;
+      overlay.style.display = 'block';
+      document.getElementById('backButton').style.display = 'block';
+    }
+
+    document.getElementById('backButton').addEventListener('click', () => {
+      isZoomedIn = false;
+      controls.enabled = true;
+      document.getElementById('contentOverlay').style.display = 'none';
+      document.getElementById('backButton').style.display = 'none';
+
+      const duration = 1000;
+      const startTime = Date.now();
+      const startPos = camera.position.clone();
+      const endPos = new THREE.Vector3(0, 100, 300);
+      const startTarget = controls.target.clone();
+      const endTarget = new THREE.Vector3(0, 50, 0);
+
+      function animate() {
+        const now = Date.now();
+        const progress = Math.min((now - startTime) / duration, 1);
+        
+        const t = progress < 0.5 
+          ? 2 * progress * progress 
+          : -1 + (4 - 2 * progress) * progress;
+
+        camera.position.lerpVectors(startPos, endPos, t);
+        controls.target.lerpVectors(startTarget, endTarget, t);
+        controls.update();
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      }
+
+      animate();
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      // Add subtle movement to leaves and fruits
+      treeGroup.children.forEach(child => {
+        if (child.material && child.material.color.getHex() === 0x228B22) {
+          child.rotation.x += Math.sin(Date.now() * 0.001) * 0.001;
+          child.rotation.y += Math.cos(Date.now() * 0.001) * 0.001;
+        }
+        if (interactiveApples.includes(child)) {
+          child.rotation.y += Math.sin(Date.now() * 0.0005) * 0.001;
+          child.position.y += Math.sin(Date.now() * 0.001) * 0.01;
+        }
+      });
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    window.addEventListener('click', onMouseClick);
+    
+    buildQuicklinks();
+    animate();
+  </script>
+</body>
+</html>
