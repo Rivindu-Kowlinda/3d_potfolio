@@ -8,185 +8,202 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background: #fff;
-      font-family: sans-serif;
+      background: #f7f7f7;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     }
+    /* Menu Button */
     #menu {
       position: absolute;
       top: 20px;
       right: 20px;
-      z-index: 20;
+      z-index: 80;
       cursor: pointer;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 10px;
+      background: #ffffff;
+      padding: 12px;
       border-radius: 5px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      transition: transform 0.5s ease;
     }
     .menu-line {
       width: 25px;
       height: 3px;
       background: #333;
-      margin: 5px 0;
-      transition: 0.4s;
+      margin: 4px 0;
+      transition: transform 0.5s ease, margin 0.5s ease;
     }
+    /* When active, rotate lines 90° */
+    #menu.active .menu-line {
+      transform: rotate(90deg);
+    }
+    /* Quicklinks List */
     #quicklinks {
       position: absolute;
-      top: 60px;
-      right: 20px;
-      background: rgba(255, 255, 255, 0.95);
+      top: 20px;
+      right: 80px;
+      background: #ffffff;
       padding: 10px;
       border-radius: 5px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 70;
       display: none;
-      z-index: 20;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    #quicklinks.visible {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
     }
     #quicklinks a {
       display: block;
       padding: 8px 15px;
       color: #333;
       text-decoration: none;
-      transition: 0.3s;
       border-radius: 3px;
+      transition: background 0.3s ease;
     }
     #quicklinks a:hover {
       background: #f0f0f0;
     }
-    #contentOverlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255,255,255,0.98);
-      color: #000;
+    /* Info Card */
+    #infoCard {
+      position: fixed;
+      top: 50%;
+      right: 20px;
+      width: 400px;
+      background: linear-gradient(135deg, #ffffff, #f0f0f0);
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
       padding: 20px;
-      box-sizing: border-box;
-      display: none;
-      z-index: 10;
+      overflow-y: auto;
+      z-index: 50;
+      opacity: 0;
+      transform: translate(100%, -50%);
+      transition: opacity 0.5s ease, transform 0.5s ease;
     }
+    #infoCard.visible {
+      opacity: 1;
+      transform: translate(0, -50%);
+    }
+    /* Back Button */
     #backButton {
-      position: absolute;
+      position: fixed;
       top: 20px;
       left: 20px;
-      background: rgba(0,0,0,0.7);
+      background: rgba(0,0,0,0.8);
       color: #fff;
       padding: 10px 15px;
       cursor: pointer;
-      z-index: 20;
-      display: none;
+      z-index: 60;
       border-radius: 4px;
+      display: none;
+      transition: opacity 0.3s ease;
     }
   </style>
 </head>
 <body>
+  <!-- UI Elements -->
   <div id="menu">
     <div class="menu-line"></div>
     <div class="menu-line"></div>
     <div class="menu-line"></div>
   </div>
   <div id="quicklinks"></div>
-  <div id="contentOverlay"></div>
+  <div id="infoCard"></div>
   <div id="backButton">Back</div>
 
+  <!-- Include Three.js and OrbitControls -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script>
+    // --- Global Variables & Intro Setup ---
     let scene, camera, renderer, controls;
     let isZoomedIn = false;
     const interactiveApples = [];
     
+    // Intro Animation Variables:
+    let intro = true;
+    const introDuration = 5000; // 5 seconds for zoom-in
+    const introStartPos = new THREE.Vector3(0, 400, 1000); // starting far away
+    const introEndPos = new THREE.Vector3(0, 300, 400); // bird's-eye view position
+    let introEndTime = null;
+    let introOrbitStartAngle = 0;
+    
+    // Content Data (Only fruits are colored):
     const contentData = [
-      { title: "About Me", content: "<h2>About me</h2><p>Rivindu Kowlinda is a driven and accomplished software engineering undergraduate at IIT, recognized for his impressive technical expertise and leadership qualities. Throughout his academic journey, he has built a strong foundation in a wide array of programming languages, including HTML, CSS, JavaScript, Java, Python, Flutter, and TypeScript. His practical experience is further enriched by his work with modern frameworks such as Spring Boot and Angular, enabling him to design and develop innovative solutions that effectively bridge theory with real-world application.</p><br><br><p>With a natural aptitude for leadership and communication, Rivindu excels in collaborative environments. His fluency in English allows him to articulate complex technical concepts clearly, making him an asset in team projects and professional settings alike. His ability to motivate and guide peers has been demonstrated in various group initiatives, where he has consistently contributed to achieving shared objectives with creativity and precision.</p><br><br><p>Rivindu’s passion for technology is matched by his commitment to continuous learning. He eagerly embraces emerging technologies and industry trends, constantly seeking out new challenges to further refine his skills. Whether working on a dynamic user interface or architecting robust backend systems, Rivindu approaches each project with a blend of technical acumen, creativity, and a dedication to quality, positioning him as a forward-thinking contributor in the ever-evolving field of software engineering.</p>", color: 0xff0000 },
-      { 
-        title: "Hero Section", 
-        content: "<h2>Hello, I'm Rivindu Kowlida</h2><p>Software Engineer | Designer | Innovator</p><a href='#projectsSection' class='btn'>View Projects</a>", 
-        color: 0xff4400 
-        },
-        { 
-        title: "About Me", 
-        content: "<h2>About Me</h2><p>Rivindu Kowlinda is a driven and accomplished software engineering undergraduate at IIT, recognized for his impressive technical expertise and leadership qualities. Throughout his academic journey, he has built a strong foundation in a wide array of programming languages, including HTML, CSS, JavaScript, Java, Python, Flutter, and TypeScript. His practical experience is further enriched by his work with modern frameworks such as Spring Boot and Angular, enabling him to design and develop innovative solutions that effectively bridge theory with real-world application. With a natural aptitude for leadership and communication, Rivindu excels in collaborative environments. His fluency in English allows him to articulate complex technical concepts clearly, making him an asset in team projects and professional settings alike. Rivindu’s passion for technology is matched by his commitment to continuous learning. He eagerly embraces emerging technologies and industry trends, constantly seeking out new challenges to further refine his skills.</p>", 
-        color: 0xff8800 
-        },
-        { 
-        title: "Project 1", 
-        content: "<h3>Project Title 1</h3><p>Short description of project 1.</p><a href='project.html?project=1' class='btn'>Learn More</a>", 
-        color: 0xffcc00 
-        },
-        { 
-        title: "Project 2", 
-        content: "<h3>Project Title 2</h3><p>Short description of project 2.</p><a href='project.html?project=2' class='btn'>Learn More</a>", 
-        color: 0xffff00 
-        },
-        { 
-        title: "Project 3", 
-        content: "<h3>Project Title 3</h3><p>Short description of project 3.</p><a href='project.html?project=3' class='btn'>Learn More</a>", 
-        color: 0xccff00 
-        },
-        { 
-        title: "Contact Me", 
-        content: "<h2>Contact Me</h2><form class='contact-form' action='https://formspree.io/f/yourformid' method='POST'><div class='form-group'><label for='name'>Name</label><input type='text' id='name' name='name' placeholder='Your Name' required /></div><div class='form-group'><label for='email'>Email</label><input type='email' id='email' name='_replyto' placeholder='Your Email' required /></div><div class='form-group'><label for='message'>Message</label><textarea id='message' name='message' placeholder='Your Message' required></textarea></div><button type='submit' class='btn'>Send Message</button></form>", 
-        color: 0x88ff00 
-        },
-        { 
-        title: "idk", 
-        content: "idk", 
-        color: 0x44ff00 
-        },
-        { 
-        title: "idk", 
-        content: "idk", 
-        color: 0x00ff00 
-        },
-        { 
-        title: "idk", 
-        content: "idk", 
-        color: 0x00ff44 
-        }
-
+      { title: "About Me", content: "<h2>About me</h2><p>Rivindu Kowlinda is a driven software engineering undergraduate at IIT...</p>", color: 0xff0000 },
+      { title: "Hero Section", content: "<h2>Hello, I'm Rivindu Kowlida</h2><p>Software Engineer | Designer | Innovator</p>", color: 0xff4400 },
+      { title: "About Me", content: "<h2>About Me</h2><p>Rivindu Kowlinda has built a strong foundation in various programming languages...</p>", color: 0xff8800 },
+      { title: "Project 1", content: "<h3>Project Title 1</h3><p>Short description of project 1.</p>", color: 0xffcc00 },
+      { title: "Project 2", content: "<h3>Project Title 2</h3><p>Short description of project 2.</p>", color: 0xffff00 },
+      { title: "Project 3", content: "<h3>Project Title 3</h3><p>Short description of project 3.</p>", color: 0xccff00 },
+      { title: "Contact Me", content: "<h2>Contact Me</h2><p>Get in touch!</p>", color: 0x88ff00 },
+      { title: "idk", content: "idk", color: 0x44ff00 },
+      { title: "idk", content: "idk", color: 0x00ff00 },
+      { title: "idk", content: "idk", color: 0x00ff44 }
     ];
-
+    
+    // --- Scene Setup ---
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xffffff);
-
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 20000);
-    camera.position.set(0, 100, 300);
-
+    scene.background = new THREE.Color(0xf7f7f7);
+    
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 20000);
+    camera.position.copy(introStartPos);
+    
     renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.toneMapping = THREE.NoToneMapping;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
-
+    
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 50, 0);
     controls.minPolarAngle = 0;
-    controls.maxPolarAngle = Math.PI * 0.45;
-
+    controls.maxPolarAngle = Math.PI * 0.8;
+    
+    // --- Lights ---
     const ambientLight = new THREE.AmbientLight(0xaaaaaa);
     scene.add(ambientLight);
+    
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(1, 1, 1);
+    directionalLight.position.set(1,1,1);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.camera.left = -500;
+    directionalLight.shadow.camera.right = 500;
+    directionalLight.shadow.camera.top = 500;
+    directionalLight.shadow.camera.bottom = -500;
+    directionalLight.shadow.mapSize.width = 1024;
+    directionalLight.shadow.mapSize.height = 1024;
     scene.add(directionalLight);
-
-    const groundGeometry = new THREE.CircleGeometry(1000, 32);
-    const groundMaterial = new THREE.MeshPhongMaterial({ color: 0x228B22 });
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -31;
-    scene.add(ground);
-
+    
+    // --- Ground: Infinite Grid ---
+    // Increase grid size for a farther infinite look and increase divisions for smaller mesh cells.
+    const gridSize = 10000;
+    const gridDivisions = 1000;
+    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x888888, 0x888888);
+    // Do not rotate the grid so that it lies flat on the x-z plane.
+    gridHelper.material.opacity = 0.3;
+    gridHelper.material.transparent = true;
+    gridHelper.position.y = 0;
+    scene.add(gridHelper);
+    
+    // --- Tree Group ---
     const treeGroup = new THREE.Group();
     scene.add(treeGroup);
-
-    // Create more organic-looking trunk
+    
+    // --- Trunk (Monochrome Gray) ---
     const trunkGeometry = new THREE.CylinderGeometry(8, 12, 60, 12);
-    const trunkMaterial = new THREE.MeshPhongMaterial({ 
-      color: 0x8B4513,
-      roughness: 0.8,
-      metalness: 0.2
-    });
+    const trunkMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, roughness: 0.8, metalness: 0.2 });
     const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+    // For the tree to sit on the ground, set trunk's base at y = 0.
     trunk.position.y = 30;
+    trunk.castShadow = true;
+    trunk.receiveShadow = true;
     treeGroup.add(trunk);
-
-    // Create leaf shape
+    
+    // --- Branches & Leaves (Monochrome Gray) ---
     function createLeafShape() {
       const shape = new THREE.Shape();
       shape.moveTo(0, 0);
@@ -194,103 +211,63 @@
       shape.quadraticCurveTo(-1, 1, 0, 0);
       return shape;
     }
-
+    
     function createBranch(startPoint, direction, length, radius, depth, parentAngle = 0) {
-      if (depth <= 0) return;
-
+      if (depth <= 0) {
+        const crownGeometry = new THREE.SphereGeometry(6, 16, 16);
+        const crownMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, flatShading: true });
+        const crown = new THREE.Mesh(crownGeometry, crownMaterial);
+        crown.position.copy(startPoint);
+        crown.castShadow = true;
+        treeGroup.add(crown);
+        return;
+      }
       const branchAngle = parentAngle + (Math.random() - 0.5) * Math.PI * 0.5;
-      const endPoint = startPoint.clone().add(
-        new THREE.Vector3(
-          Math.sin(branchAngle) * length,
-          direction.y * length,
-          Math.cos(branchAngle) * length
-        )
-      );
+      const endPoint = startPoint.clone().add(new THREE.Vector3(
+        Math.sin(branchAngle) * length,
+        direction.y * length,
+        Math.cos(branchAngle) * length
+      ));
+      const midPoint = startPoint.clone().lerp(endPoint, 0.5);
+      midPoint.x += (Math.random() - 0.5) * 10;
+      midPoint.y += (Math.random() - 0.5) * 5;
+      midPoint.z += (Math.random() - 0.5) * 10;
+      const branchCurve = new THREE.CatmullRomCurve3([ startPoint, midPoint, endPoint ]);
+      const branchGeometry = new THREE.TubeGeometry(branchCurve, 16, radius, 8, false);
+      const branchMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
+      const branchMesh = new THREE.Mesh(branchGeometry, branchMaterial);
+      branchMesh.userData.branchCurve = branchCurve;
+      branchMesh.castShadow = true;
+      branchMesh.receiveShadow = true;
+      treeGroup.add(branchMesh);
       
-      // Create organic-looking branch
-      const branchCurve = new THREE.CatmullRomCurve3([
-        startPoint,
-        new THREE.Vector3(
-          (startPoint.x + endPoint.x) * 0.5 + (Math.random() - 0.5) * 10,
-          (startPoint.y + endPoint.y) * 0.5 + (Math.random() - 0.5) * 5,
-          (startPoint.z + endPoint.z) * 0.5 + (Math.random() - 0.5) * 10
-        ),
-        endPoint
-      ]);
-
-      const branchGeometry = new THREE.TubeGeometry(branchCurve, 8, radius, 8, false);
-      const branchMaterial = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
-      const branch = new THREE.Mesh(branchGeometry, branchMaterial);
-      treeGroup.add(branch);
-
-      // Add leaves
       if (depth <= 3) {
         const leafShape = createLeafShape();
         const leafGeometry = new THREE.ShapeGeometry(leafShape);
-        const leafMaterial = new THREE.MeshPhongMaterial({ 
-          color: 0x228B22,
+        const leafMaterial = new THREE.MeshPhongMaterial({
+          color: 0x888888,
           side: THREE.DoubleSide,
           transparent: true,
-          opacity: 0.9
+          opacity: 0.85
         });
-
-        const numLeaves = Math.floor(Math.random() * 5) + 3;
+        const numLeaves = Math.floor(Math.random() * 3) + 2;
         for (let i = 0; i < numLeaves; i++) {
           const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
           leaf.position.copy(endPoint);
-          leaf.position.x += (Math.random() - 0.5) * 10;
-          leaf.position.y += (Math.random() - 0.5) * 10;
-          leaf.position.z += (Math.random() - 0.5) * 10;
-          
+          leaf.position.x += (Math.random() - 0.5) * 5;
+          leaf.position.y += (Math.random() - 0.5) * 5;
+          leaf.position.z += (Math.random() - 0.5) * 5;
           leaf.rotation.x = Math.random() * Math.PI;
           leaf.rotation.y = Math.random() * Math.PI;
           leaf.rotation.z = Math.random() * Math.PI;
-          
-          leaf.scale.set(3, 3, 3);
+          leaf.scale.set(2, 2, 2);
+          leaf.castShadow = true;
           treeGroup.add(leaf);
         }
-
-        // Add fruits with hanging effect
-        if (depth === 2 && interactiveApples.length < contentData.length && Math.random() < 0.3) {
-          const fruitPos = endPoint.clone();
-          // Add downward bias for hanging effect
-          fruitPos.y -= Math.random() * 8 + 4;
-          fruitPos.x += (Math.random() - 0.5) * 15;
-          fruitPos.z += (Math.random() - 0.5) * 15;
-
-          const fruit = new THREE.Group();
-          
-          // Create fruit body
-          const fruitGeometry = new THREE.SphereGeometry(4, 16, 16);
-          const data = contentData[interactiveApples.length];
-          const fruitMaterial = new THREE.MeshPhongMaterial({ 
-            color: data.color,
-            roughness: 0.5,
-            metalness: 0.1
-          });
-          const fruitBody = new THREE.Mesh(fruitGeometry, fruitMaterial);
-          fruit.add(fruitBody);
-
-          // Add stem
-          const stemGeometry = new THREE.CylinderGeometry(0.5, 0.5, 3, 8);
-          const stemMaterial = new THREE.MeshPhongMaterial({ color: 0x654321 });
-          const stem = new THREE.Mesh(stemGeometry, stemMaterial);
-          stem.position.y = 4;
-          fruit.add(stem);
-
-          fruit.position.copy(fruitPos);
-          fruit.userData = {
-            content: data.content,
-            title: data.title
-          };
-          interactiveApples.push(fruit);
-          treeGroup.add(fruit);
-        }
       }
-
-      // Create sub-branches
-      const numBranches = Math.floor(Math.random() * 3) + 2;
-      for (let i = 0; i < numBranches; i++) {
+      
+      const numSubBranches = Math.floor(Math.random() * 3) + 2;
+      for (let i = 0; i < numSubBranches; i++) {
         const newDirection = direction.clone();
         newDirection.y *= 0.8;
         createBranch(
@@ -303,9 +280,8 @@
         );
       }
     }
-
-    // Generate main branches with more variation
-    const numMainBranches = 5;
+    
+    const numMainBranches = 8;
     for (let i = 0; i < numMainBranches; i++) {
       const angle = (i * Math.PI * 2) / numMainBranches;
       const direction = new THREE.Vector3(
@@ -318,11 +294,77 @@
         direction,
         40 + Math.random() * 20,
         4,
-        4,
+        5,
         angle
       );
     }
-
+    
+    // --- Fruits (Keep original colors) ---
+    function addFruits() {
+      const branchCandidates = [];
+      treeGroup.traverse(child => {
+        if (child.isMesh && child.geometry && child.geometry.type === "TubeGeometry" && child.userData.branchCurve) {
+          branchCandidates.push(child);
+        }
+      });
+      if (branchCandidates.length === 0) return;
+      
+      const numFruits = 10;
+      const step = branchCandidates.length / numFruits;
+      for (let i = 0; i < numFruits; i++) {
+        const index = Math.floor(i * step);
+        const branch = branchCandidates[index];
+        const t = 0.8 + Math.random() * 0.1;
+        const point = branch.userData.branchCurve.getPoint(t);
+        // No upward offset.
+        point.x += (Math.random() - 0.5) * 10;
+        point.z += (Math.random() - 0.5) * 10;
+        
+        // Compute perpendicular offset.
+        const tangent = branch.userData.branchCurve.getTangent(t).normalize();
+        let ref = new THREE.Vector3(0, 1, 0);
+        if (Math.abs(tangent.dot(ref)) > 0.9) { ref.set(1, 0, 0); }
+        const side = tangent.clone().cross(ref).normalize();
+        const normal = tangent.clone().cross(side).normalize();
+        const offsetDistance = 10;
+        const fruitPos = point.clone().add(normal.multiplyScalar(offsetDistance));
+        
+        // Build fruit group.
+        const fruitGroup = new THREE.Group();
+        // Stem: cylinder of height 10.
+        const stemGeometry = new THREE.CylinderGeometry(0.5, 0.5, 10, 8);
+        stemGeometry.translate(0, 10 / 2, 0);
+        const stemMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
+        const stem = new THREE.Mesh(stemGeometry, stemMaterial);
+        fruitGroup.add(stem);
+        // Fruit sphere: radius 4 (colored).
+        const fruitGeometry = new THREE.SphereGeometry(4, 16, 16);
+        const data = contentData[i % contentData.length];
+        const fruitMaterial = new THREE.MeshPhongMaterial({
+          color: data.color,
+          emissive: data.color,
+          emissiveIntensity: 0.5,
+          roughness: 0.5,
+          metalness: 0.1
+        });
+        const fruitBody = new THREE.Mesh(fruitGeometry, fruitMaterial);
+        fruitBody.position.set(0, 14, 0);
+        fruitGroup.add(fruitBody);
+        
+        // Ensure fruit hangs vertically.
+        fruitGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0));
+        fruitGroup.position.copy(fruitPos);
+        fruitGroup.userData = { content: data.content, title: data.title, branchId: branch.uuid };
+        fruitGroup.castShadow = true;
+        treeGroup.add(fruitGroup);
+        interactiveApples.push(fruitGroup);
+      }
+      return branchCandidates;
+    }
+    
+    const branchCandidates = addFruits();
+    
+    // --- Quicklinks List ---
     function buildQuicklinks() {
       const quicklinksDiv = document.getElementById("quicklinks");
       quicklinksDiv.innerHTML = '';
@@ -338,133 +380,185 @@
         quicklinksDiv.appendChild(link);
       });
     }
-
+    
+    buildQuicklinks();
+    
+    // --- Toggle Quicklinks ---
     function toggleQuicklinks() {
       const quicklinks = document.getElementById("quicklinks");
-      quicklinks.style.display = quicklinks.style.display === "none" || quicklinks.style.display === "" ? "block" : "none";
+      if (quicklinks.style.display === "none" || quicklinks.style.display === "") {
+        quicklinks.style.display = "block";
+        setTimeout(() => quicklinks.classList.add("visible"), 10);
+        document.getElementById("menu").classList.add("active");
+      } else {
+        quicklinks.classList.remove("visible");
+        setTimeout(() => quicklinks.style.display = "none", 500);
+        document.getElementById("menu").classList.remove("active");
+      }
     }
-
     document.getElementById("menu").addEventListener("click", toggleQuicklinks);
-
+    
+    // --- Raycaster & Mouse ---
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
-
     function onMouseClick(event) {
       if (isZoomedIn) return;
-
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
       raycaster.setFromCamera(mouse, camera);
       const intersects = raycaster.intersectObjects(interactiveApples, true);
-
       if (intersects.length > 0) {
         const fruit = intersects[0].object.parent || intersects[0].object;
         zoomToApple(fruit);
       }
     }
-
+    
+    // --- Zoom Function ---
     function zoomToApple(apple) {
       isZoomedIn = true;
       controls.enabled = false;
-
+      
+      // Compute the fruit sphere's world position (local (0,14,0) in fruitGroup).
+      let fruitWorldPos = new THREE.Vector3(0, 14, 0);
+      apple.localToWorld(fruitWorldPos);
+      
+      // Compute horizontal center at fruit's Y level.
+      let treeCenter = new THREE.Vector3(0, fruitWorldPos.y, 0);
+      
+      // Compute horizontal direction from center to fruit.
+      let dir = fruitWorldPos.clone().sub(treeCenter);
+      dir.y = 0;
+      dir.normalize();
+      
+      const offset = 30;
+      let endPos = fruitWorldPos.clone().add(dir.multiplyScalar(offset));
+      endPos.y = fruitWorldPos.y;
+      
       const startPos = camera.position.clone();
       const startTarget = controls.target.clone();
-      const endPos = apple.position.clone().add(new THREE.Vector3(0, 0, 30));
-      
+      const endTarget = fruitWorldPos.clone();
       const duration = 1000;
       const startTime = Date.now();
-
-      function animate() {
+      
+      function animateZoom() {
         const now = Date.now();
         const progress = Math.min((now - startTime) / duration, 1);
-        
-        const t = progress < 0.5 
-          ? 2 * progress * progress 
-          : -1 + (4 - 2 * progress) * progress;
-
-          camera.position.lerpVectors(startPos, endPos, t);
-        controls.target.lerpVectors(startTarget, apple.position, t);
+        const t = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+        camera.position.lerpVectors(startPos, endPos, t);
+        controls.target.lerpVectors(startTarget, endTarget, t);
         controls.update();
-
         if (progress < 1) {
-          requestAnimationFrame(animate);
+          requestAnimationFrame(animateZoom);
         } else {
           showContent(apple.userData.content);
         }
       }
-
-      animate();
+      animateZoom();
     }
-
+    
     function showContent(content) {
-      const overlay = document.getElementById('contentOverlay');
-      overlay.innerHTML = content;
-      overlay.style.display = 'block';
-      document.getElementById('backButton').style.display = 'block';
+      const infoCard = document.getElementById("infoCard");
+      infoCard.innerHTML = content;
+      infoCard.classList.add("visible");
+      document.getElementById("backButton").style.display = "block";
     }
-
-    document.getElementById('backButton').addEventListener('click', () => {
+    
+    document.getElementById("backButton").addEventListener("click", () => {
       isZoomedIn = false;
       controls.enabled = true;
-      document.getElementById('contentOverlay').style.display = 'none';
-      document.getElementById('backButton').style.display = 'none';
-
+      const infoCard = document.getElementById("infoCard");
+      infoCard.classList.remove("visible");
+      document.getElementById("backButton").style.display = "none";
       const duration = 1000;
       const startTime = Date.now();
       const startPos = camera.position.clone();
       const endPos = new THREE.Vector3(0, 100, 300);
       const startTarget = controls.target.clone();
       const endTarget = new THREE.Vector3(0, 50, 0);
-
-      function animate() {
+      function animateBack() {
         const now = Date.now();
         const progress = Math.min((now - startTime) / duration, 1);
-        
-        const t = progress < 0.5 
-          ? 2 * progress * progress 
-          : -1 + (4 - 2 * progress) * progress;
-
+        const t = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
         camera.position.lerpVectors(startPos, endPos, t);
         controls.target.lerpVectors(startTarget, endTarget, t);
         controls.update();
-
         if (progress < 1) {
-          requestAnimationFrame(animate);
+          requestAnimationFrame(animateBack);
         }
       }
-
-      animate();
+      animateBack();
     });
-
+    
+    // --- Intro Animation ---
+    const introStartTime = Date.now();
+    function runIntro() {
+      if (!intro) return;
+      const elapsed = Date.now() - introStartTime;
+      let t = elapsed / introDuration;
+      if (t >= 1) {
+        t = 1;
+        if (!introEndTime) {
+          introEndTime = Date.now();
+          const dx = camera.position.x - controls.target.x;
+          const dz = camera.position.z - controls.target.z;
+          introOrbitStartAngle = Math.atan2(dx, dz);
+        }
+        // After the intro, smoothly orbit.
+        const orbitSpeed = 0.00015; // slower orbit speed
+        const orbitElapsed = Date.now() - introEndTime;
+        const angle = introOrbitStartAngle + orbitSpeed * orbitElapsed;
+        const radius = introEndPos.distanceTo(controls.target);
+        camera.position.x = controls.target.x + radius * Math.sin(angle);
+        camera.position.z = controls.target.z + radius * Math.cos(angle);
+        camera.position.y = introEndPos.y;
+      } else {
+        camera.position.lerpVectors(introStartPos, introEndPos, t);
+      }
+      controls.update();
+      requestAnimationFrame(runIntro);
+    }
+    runIntro();
+    
+    // --- Main Animation Loop ---
     function animate() {
       requestAnimationFrame(animate);
       
-      // Add subtle movement to leaves and fruits
-      treeGroup.children.forEach(child => {
-        if (child.material && child.material.color.getHex() === 0x228B22) {
-          child.rotation.x += Math.sin(Date.now() * 0.001) * 0.001;
-          child.rotation.y += Math.cos(Date.now() * 0.001) * 0.001;
-        }
-        if (interactiveApples.includes(child)) {
-          child.rotation.y += Math.sin(Date.now() * 0.0005) * 0.001;
-          child.position.y += Math.sin(Date.now() * 0.001) * 0.01;
-        }
-      });
-
+      if (!intro) {
+        treeGroup.children.forEach(child => {
+          if (child.material && child.material.color && child.material.color.getHex() === 0x888888) {
+            child.rotation.x += Math.sin(Date.now() * 0.001) * 0.001;
+            child.rotation.y += Math.cos(Date.now() * 0.001) * 0.001;
+          }
+          if (interactiveApples.includes(child)) {
+            child.rotation.y += Math.sin(Date.now() * 0.0005) * 0.001;
+            child.position.y += Math.sin(Date.now() * 0.001) * 0.01;
+          }
+        });
+      }
+      
       controls.update();
+      
+      // Clamp camera Y to avoid going below ground.
+      if (camera.position.y < 0) {
+        camera.position.y = 0;
+      }
+      
       renderer.render(scene, camera);
     }
-
+    
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
-
-    window.addEventListener('click', onMouseClick);
     
-    buildQuicklinks();
+    window.addEventListener('click', (event) => {
+      if (intro) {
+        intro = false;
+      }
+      onMouseClick(event);
+    });
+    
     animate();
   </script>
 </body>
